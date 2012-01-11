@@ -2,11 +2,9 @@
 
 LEDMatrix::LEDMatrix(BusOut* rows, BusOut* cols, char width, char height, float refresh)
 : _rows(rows), _cols(cols), _refresh(refresh), _drawing(false), _scanmode(SCAN_ROWS) {
-	_bytesPerCol = (height + 7) / 8;
-
-	_data = new char*[width];
+	_cols = new BitArray*[width];
 	for(int i = 0; i < width; i++) {
-		_data[i] = new char[_bytesPerCol];
+		_data[i] = BitArray(height);
 	}
 }
 
@@ -17,74 +15,27 @@ void LEDMatrix::contains(int x, int y) {
 /**********************************************************/
 /*Pixel operations                                        */
 /**********************************************************/
-void LEDMatrix::setPixel(int x, int y, int on)
-{
+void LEDMatrix::setPixel(int x, int y, int on) {
 	if(!contains(x, y)) return;
-	on = on & 1;
-
-	char &byte = _data[x][y / 8];
-	char bit = y % 8;
-
-	char mask = 1<<bit;
-	byte = (byte & ~mask)|(on & mask);
+	_cols[x][y] = on != 0;
 }
 
-int LEDMatrix::getPixel(int x, int y)
-{
+bool LEDMatrix::getPixel(int x, int y) {
 	if(!contains(x, y)) return 0;
-
-	char &byte = _data[x][y / 8];
-	char bit = y % 8;
-
-	return (byte>>bit)&1;
+	return _cols[x][y];
 }
 
 /**********************************************************/
 /*Row operations                                          */
 /**********************************************************/
-void LEDMatrix::setRow(int y, char* row)
-{
-	char byte = y / 8;
-	char bit = y % 8;
-
-	for (int x = 0; x < _width; x++)
-	{
-		_data[x][byte]
-	}
-	_data[row] = data;
-}
-void LEDMatrix::setCol(int y, char* row)
-{
-	char byte = y / 8;
-	char bit = y % 8;
-
-	for (int x = 0; x < _width; x++)
-	{
-		_data[x][byte]
-	}
-	_data[row] = data;
-}
-
-/**********************************************************/
-/*Matrix operations                                       */
-/**********************************************************/
-void LEDMatrix::setData(int data[][8])
-{
-	for (int row = 0; row < 8; row++)
-	{ 
-		setRow(row,data[row]);
-	}
-	_curpos = 0;
-}
-
-void LEDMatrix::setData(char data[])
-{
-	for (int row = 0; row < 8; row++)
-	{ 
-		setRow(row,data[row]);
+void LEDMatrix::setRow(int y, const &BitArray row) {
+	for (int x = 0, size = row.size(); x < size; x++) {
+		_cols[x][y] = row[x];
 	}
 }
-
+void LEDMatrix::setCol(int x, const &BitArray col) {
+	_data[x] = col;
+}
 
 /**********************************************************/
 /*Drawing operations                                        */
@@ -116,7 +67,7 @@ void LEDMatrix::_drawFunc()
 
 void LEDMatrix::startDraw()
 {
-	if(!_drawing) _redraw.attach<LEDMatrix>(this, &LEDMatrix::_drawFunc,_refresh);
+	if(!_drawing) _redraw.attach<LEDMatrix>(this, &LEDMatrix::_drawFunc, _refresh);
 }
 
 void LEDMatrix::stopDraw()
